@@ -42,9 +42,12 @@ def query_database(data_list, _message_placeholder):
     placeholders = ','.join(f"'{id}'" for id in data_list)
 
     query = f'''
-    SELECT c.identifiers_opensrp_id, c.site_code, c.gender, c.firstname
-    FROM vital_target.vr.client c
-    WHERE c.identifiers_opensrp_id IN ({placeholders});
+    select site_code,site_name,identifiers_opensrp_id,firstname ,
+    CASE WHEN site_code in ('AG','BH','AE','IE','QB','KMG','Saindad Goth','Yusuf Saab Goth','JG','SG') then 'IRP'
+    WHEN site_code in ('RG','IH') then 'Prisma'
+    else 'client'
+    end as project
+    from vital_target.vr.client c where client_type_target='MOTHER' AND c.identifiers_opensrp_id IN ({placeholders});
     '''
 
     cursor.execute(query)
@@ -58,10 +61,11 @@ def query_database(data_list, _message_placeholder):
     return df
 
 def main():
-    st.title("Database Query App")
+    st.title("Finance Data")
+
     uploaded_file = st.file_uploader("Upload a file", type=["xlsx"])
 
-    message_placeholder = st.empty()
+    
 
     if uploaded_file:
         file_changed = (
@@ -73,6 +77,7 @@ def main():
         )
 
         if file_changed:
+            message_placeholder = st.empty()
             st.session_state.uploaded_file_name = uploaded_file.name
              
             message_placeholder.success(f"Uploaded file: {uploaded_file.name}")
@@ -108,6 +113,9 @@ def main():
             st.session_state.df_result = df_result
             st.session_state.download_bytes = to_excel_bytes(df_result)
 
+     
+
+        if "uploaded_data" in st.session_state:
             if "df_result" in st.session_state:
                 st.write("File content preview")
                 st.dataframe(st.session_state.df_result.head())
