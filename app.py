@@ -35,6 +35,10 @@ def foo_cached(data_list, _message_placeholder):
         _message_placeholder.empty()
         st.stop()
         return
+    
+    _message_placeholder.success("Connected to the database successfully!")
+    time.sleep(1.5)
+    _message_placeholder.empty()
 
     cursor = conn.cursor()
     
