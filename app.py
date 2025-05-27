@@ -59,7 +59,7 @@ def foo_cached(data_list, _message_placeholder):
 
 
 def main():
-    st.title("File Upload and Download App")
+    st.title("Database Query App")
 
     # File upload
     uploaded_file = st.file_uploader("Upload a file", type=["xlsx"])
@@ -80,7 +80,7 @@ def main():
             return
         col = df_input.columns[0]
 
-        if col.startswith('Unnamed'):
+        if col.lower().startswith("unnamed") or col == "":
             message_placeholder.error("The ID column should start from the first column with a column valid name.")
             message_placeholder.empty()
             return
