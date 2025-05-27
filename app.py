@@ -70,6 +70,8 @@ def main():
         )
 
         if file_changed:
+            st.write("{uploaded_file}")
+            
             st.session_state.uploaded_file_name = uploaded_file.name
             message_placeholder.success(f"Uploaded file: {uploaded_file.name}")
             time.sleep(1.5)
@@ -117,6 +119,7 @@ def main():
 
             if c:
                 message_placeholder.success("File downloaded successfully!")
+                file_changed = None
 
 if __name__ == "__main__":
     main()
