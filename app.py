@@ -12,30 +12,29 @@ def to_excel_bytes(df):
     return processed_data
 
 
-@st.cache_data(show_spinner="Querying database...")
-def foo_cached(data_list, _message_placeholder):
-
-    DB_SERVER = st.secrets["db_server"]
-    DB_NAME = st.secrets["db_name"]
-    DB_USER = st.secrets["db_user"]
-    DB_PASSWORD = st.secrets["db_password"]
-     
-    try:
-        conn = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_NAME};"
-            f"UID={DB_USER};"
-            f"PWD={DB_PASSWORD};"
-            "TrustServerCertificate=yes;",
-            timeout=5
-        )
-    except pyodbc.Error as e:
-        _message_placeholder.error(f"Database connection error: {e}")
-        time.sleep(2)
-        _message_placeholder.empty()
-        st.stop()
-        return
+def foo(data_list, _message_placeholder):
+    with st.spinner("Querying database..."):
+        DB_SERVER = st.secrets["db_server"]
+        DB_NAME = st.secrets["db_name"]
+        DB_USER = st.secrets["db_user"]
+        DB_PASSWORD = st.secrets["db_password"]
+         
+        try:
+            conn = pyodbc.connect(
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={DB_SERVER};"
+                f"DATABASE={DB_NAME};"
+                f"UID={DB_USER};"
+                f"PWD={DB_PASSWORD};"
+                "TrustServerCertificate=yes;",
+                timeout=5
+            )
+        except pyodbc.Error as e:
+            _message_placeholder.error(f"Database connection error: {e}")
+            time.sleep(2)
+            _message_placeholder.empty()
+            st.stop()
+            return
     
     _message_placeholder.success("Connected to the database successfully!")
     time.sleep(1.5)
@@ -96,7 +95,7 @@ def main():
         data = data.apply(lambda x: x.replace("'", "").strip()).unique().tolist()
 
         # Call the cached function
-        df = foo_cached(data,message_placeholder)
+        df = foo(data,message_placeholder)
         if type(df) is pd.DataFrame:
             st.write("File content preview")
             st.dataframe(df.head())
