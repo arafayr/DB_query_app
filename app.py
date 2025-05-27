@@ -80,18 +80,11 @@ def main():
             return
         col = df_input.columns[0]
 
-        # 
-        st.write("File content preview")
-        st.dataframe(df_input[col].head())
-        # 
         if col.lower().startswith("unnamed") or col == "":
-            message_placeholder.error("The ID column should start from the first column with a column valid name.")
-            message_placeholder.empty()
-            st.write(f"yessssssssssssssssssssss {col.lower().startswith("unnamed")}")
+            st.error("The ID column should start from the first column with a column valid name.")
             return
         elif df_input[col].isnull().all():
-            message_placeholder.error("The ID column is empty. Please upload a file with valid IDs.")
-            message_placeholder.empty()
+            st.error("The ID column is empty. Please upload a file with valid IDs.")
             return
 
         data = df_input[col].dropna()
