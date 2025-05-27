@@ -75,10 +75,13 @@ def main():
         else:
             df_input = pd.read_csv(uploaded_file)
 
+        if df_input.empty:
+            st.error("The uploaded file is empty. Please upload a valid file.")
+            return
         col = df_input.columns[0]
 
-        if not col:
-            st.error("The ID column should start from the first column with a valid name.")
+        if col.startswith('Unnamed'):
+            st.error("The ID column should start from the first column with a column valid name.")
             return
         elif df_input[col].isnull().all():
             st.error("The ID column is empty. Please upload a file with valid IDs.")
