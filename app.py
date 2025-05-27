@@ -108,21 +108,20 @@ def main():
             st.session_state.df_result = df_result
             st.session_state.download_bytes = to_excel_bytes(df_result)
 
-        # Display results and download button
-        if "df_result" in st.session_state:
-            st.write("File content preview")
-            st.dataframe(st.session_state.df_result.head())
-
-            c = st.download_button(
-                label="Download file",
-                data=st.session_state.download_bytes,
-                file_name=st.session_state.uploaded_file_name,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-            if c:
-                message_placeholder.success("File downloaded successfully!")
-                file_changed = None
+            if "df_result" in st.session_state:
+                st.write("File content preview")
+                st.dataframe(st.session_state.df_result.head())
+    
+                c = st.download_button(
+                    label="Download file",
+                    data=st.session_state.download_bytes,
+                    file_name=st.session_state.uploaded_file_name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+    
+                if c:
+                    message_placeholder.success("File downloaded successfully!")
+                    file_changed = None
 
 if __name__ == "__main__":
     main()
