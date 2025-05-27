@@ -85,7 +85,7 @@ def main():
         col = df_input.columns[0]
 
         if col.lower().startswith("unnamed") or col == "":
-            st.error("The ID column should start from the first column with a column valid name.")
+            st.error("The ID column should start from the first column with a valid column name.")
             return
         elif df_input[col].isnull().all():
             st.error("The ID column is empty. Please upload a file with valid IDs.")
