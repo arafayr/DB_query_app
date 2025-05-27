@@ -27,7 +27,8 @@ def foo_cached(data_list, _message_placeholder):
             f"DATABASE={DB_NAME};"
             f"UID={DB_USER};"
             f"PWD={DB_PASSWORD};"
-            "TrustServerCertificate=yes;"
+            "TrustServerCertificate=yes;",
+            timeout=5
         )
     except pyodbc.Error as e:
         _message_placeholder.error(f"Database connection error: {e}")
