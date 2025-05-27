@@ -80,6 +80,10 @@ def main():
             return
         col = df_input.columns[0]
 
+        # 
+        st.write("File content preview")
+        st.dataframe(df[col].head())
+        # 
         if col.lower().startswith("unnamed") or col == "":
             message_placeholder.error("The ID column should start from the first column with a column valid name.")
             message_placeholder.empty()
