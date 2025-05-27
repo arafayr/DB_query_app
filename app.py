@@ -65,20 +65,23 @@ def main():
 
     if uploaded_file:
         file_changed = (
-            "uploaded_file_name" not in st.session_state or # for the first upload
-            st.session_state.uploaded_file_name != uploaded_file.name # if the file name has changed
+            ("uploaded_file_name" not in st.session_state or # for the first upload
+            st.session_state.uploaded_file_name != uploaded_file.name) or
+            ("uploaded_data" not in st.session_state or # for the first upload
+            not st.session_state.uploaded_data.equals(pd.read_excel(uploaded_file)))
+             # if the file name has changed
         )
 
         if file_changed:
-            st.write("{uploaded_file}")
-            
             st.session_state.uploaded_file_name = uploaded_file.name
+             
             message_placeholder.success(f"Uploaded file: {uploaded_file.name}")
             time.sleep(1.5)
             message_placeholder.empty()
 
             try:
                 df_input = pd.read_excel(uploaded_file)
+                st.session_state.uploaded_data = df_input
             except Exception as e:
                 message_placeholder.error(f"Failed to read file: {e}")
                 return
