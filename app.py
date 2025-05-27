@@ -8,17 +8,15 @@ def to_excel_bytes(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False)
-    processed_data = output.getvalue()
-    return processed_data
+    return output.getvalue()
 
-
-def foo(data_list, _message_placeholder):
+def query_database(data_list, _message_placeholder):
     with st.spinner("Querying database..."):
         DB_SERVER = st.secrets["db_server"]
         DB_NAME = st.secrets["db_name"]
         DB_USER = st.secrets["db_user"]
         DB_PASSWORD = st.secrets["db_password"]
-         
+
         try:
             conn = pyodbc.connect(
                 f"DRIVER={{ODBC Driver 17 for SQL Server}};"
@@ -34,14 +32,13 @@ def foo(data_list, _message_placeholder):
             time.sleep(2)
             _message_placeholder.empty()
             st.stop()
-            return
-    
+            return None
+
     _message_placeholder.success("Connected to the database successfully!")
     time.sleep(1.5)
     _message_placeholder.empty()
 
     cursor = conn.cursor()
-    
     placeholders = ','.join(f"'{id}'" for id in data_list)
 
     query = f'''
@@ -49,74 +46,77 @@ def foo(data_list, _message_placeholder):
     FROM vital_target.vr.client c
     WHERE c.identifiers_opensrp_id IN ({placeholders});
     '''
-    
+
     cursor.execute(query)
     rows = cursor.fetchall()
     columns = [column[0] for column in cursor.description]
-
     df = pd.DataFrame.from_records(rows, columns=columns)
 
     cursor.close()
     conn.close()
-    
-    return df
 
+    return df
 
 def main():
     st.title("Database Query App")
-
-    # File upload
     uploaded_file = st.file_uploader("Upload a file", type=["xlsx"])
 
-    if uploaded_file is not None:
-        message_placeholder = st.empty()
-        message_placeholder.success(f"Uploaded file: {uploaded_file.name}")
-        time.sleep(1.5)
-        message_placeholder.empty()
+    message_placeholder = st.empty()
 
-        if uploaded_file.name.endswith('.xlsx'):
-            df_input = pd.read_excel(uploaded_file)
-        else:
-            df_input = pd.read_csv(uploaded_file)
+    if uploaded_file:
+        file_changed = (
+            "uploaded_file_name" not in st.session_state or # for the first upload
+            st.session_state.uploaded_file_name != uploaded_file.name # if the file name has changed
+        )
 
-        if df_input.empty:
-            st.error("The uploaded file is empty. Please upload a valid file.")
-            return
-        col = df_input.columns[0]
+        if file_changed:
+            st.session_state.uploaded_file_name = uploaded_file.name
+            message_placeholder.success(f"Uploaded file: {uploaded_file.name}")
+            time.sleep(1.5)
+            message_placeholder.empty()
 
-        if col.lower().startswith("unnamed") or col == "":
-            st.error("The ID column should start from the first column with a valid column name.")
-            return
-        elif df_input[col].isnull().all():
-            st.error("The ID column is empty. Please upload a file with valid IDs.")
-            return
+            try:
+                df_input = pd.read_excel(uploaded_file)
+            except Exception as e:
+                message_placeholder.error(f"Failed to read file: {e}")
+                return
 
-        data = df_input[col].dropna()
-        data = data.apply(lambda x: x.replace("'", "").strip()).unique().tolist()
+            if df_input.empty:
+                message_placeholder.error("The uploaded file is empty. Please upload a valid file.")
+                return
 
-        # Call the cached function
-        df = foo(data,message_placeholder)
-        if type(df) is pd.DataFrame:
+            col = df_input.columns[0]
+            if col.lower().startswith("unnamed") or col == "":
+                message_placeholder.error("The ID column should start from the first column with a valid column name.")
+                return
+            elif df_input[col].isnull().all():
+                message_placeholder.error("The ID column is empty. Please upload a file with valid IDs.")
+                return
+
+            data = df_input[col].dropna().apply(lambda x: x.replace("'", "").strip()).unique().tolist()
+
+            df_result = query_database(data, message_placeholder)
+            if df_result is None or df_result.empty:
+                message_placeholder.error("No data found for the provided IDs.")
+                return
+
+            st.session_state.df_result = df_result
+            st.session_state.download_bytes = to_excel_bytes(df_result)
+
+        # Display results and download button
+        if "df_result" in st.session_state:
             st.write("File content preview")
-            st.dataframe(df.head())
-
-            if uploaded_file.name.endswith('.xlsx'):
-                to_download = to_excel_bytes(df)
-            else:
-                to_download = df.to_csv(index=False).encode('utf-8')
+            st.dataframe(st.session_state.df_result.head())
 
             c = st.download_button(
                 label="Download file",
-                data=to_download,
-                file_name=uploaded_file.name,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if uploaded_file.name.endswith('.xlsx') else "text/csv"
+                data=st.session_state.download_bytes,
+                file_name=st.session_state.uploaded_file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
             if c:
                 message_placeholder.success("File downloaded successfully!")
-        else:
-            st.stop()
-   
 
 if __name__ == "__main__":
-    main() 
+    main()
