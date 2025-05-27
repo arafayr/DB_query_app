@@ -81,10 +81,12 @@ def main():
         col = df_input.columns[0]
 
         if col.startswith('Unnamed'):
-            st.error("The ID column should start from the first column with a column valid name.")
+            message_placeholder.error("The ID column should start from the first column with a column valid name.")
+            message_placeholder.empty()
             return
         elif df_input[col].isnull().all():
-            st.error("The ID column is empty. Please upload a file with valid IDs.")
+            message_placeholder.error("The ID column is empty. Please upload a file with valid IDs.")
+            message_placeholder.empty()
             return
 
         data = df_input[col].dropna()
@@ -110,6 +112,8 @@ def main():
 
             if c:
                 message_placeholder.success("File downloaded successfully!")
+        else:
+            st.stop()
    
             
 
