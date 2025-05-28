@@ -4,10 +4,14 @@ from io import BytesIO
 import pyodbc
 import time
 
+
+message_placeholder = None
+
 def to_excel_bytes(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False)
+    st.session_state.download_clicked = True
     return output.getvalue()
 
 def query_database(data_list, _message_placeholder):
@@ -29,9 +33,8 @@ def query_database(data_list, _message_placeholder):
             )
         except pyodbc.Error as e:
             _message_placeholder.error(f"Database connection error: {e}")
-            time.sleep(2)
-            _message_placeholder.empty()
-            st.stop()
+            # time.sleep(2)
+            # _message_placeholder.empty()
             return None
 
     _message_placeholder.success("Connected to the database successfully!")
@@ -60,26 +63,13 @@ def query_database(data_list, _message_placeholder):
 
     return df
 
-def main():
-    st.title("Finance Data")
 
-    uploaded_file = st.file_uploader("Upload a file", type=["xlsx"])
-
-    
-
-    if uploaded_file:
-        file_changed = (
-            ("uploaded_file_name" not in st.session_state or # for the first upload
-            st.session_state.uploaded_file_name != uploaded_file.name) or
-            ("uploaded_data" not in st.session_state or # for the first upload
-            not st.session_state.uploaded_data.equals(pd.read_excel(uploaded_file)))
-             # if the file name has changed
-        )
-
-        if file_changed:
-            message_placeholder = st.empty()
+def process_file(uploaded_file):
+    if True:
+            global message_placeholder
+            
             st.session_state.uploaded_file_name = uploaded_file.name
-             
+
             message_placeholder.success(f"Uploaded file: {uploaded_file.name}")
             time.sleep(1.5)
             message_placeholder.empty()
@@ -89,47 +79,67 @@ def main():
                 st.session_state.uploaded_data = df_input
             except Exception as e:
                 message_placeholder.error(f"Failed to read file: {e}")
-                return
+                return None
 
             if df_input.empty:
                 message_placeholder.error("The uploaded file is empty. Please upload a valid file.")
-                return
-
+                st.session_state.df_result = None
+                st.stop()
+                return None
             col = df_input.columns[0]
             if col.lower().startswith("unnamed") or col == "":
                 message_placeholder.error("The ID column should start from the first column with a valid column name.")
-                return
+                st.session_state.df_result = None
+                st.stop()
+                return None
             elif df_input[col].isnull().all():
                 message_placeholder.error("The ID column is empty. Please upload a file with valid IDs.")
-                return
+                st.session_state.df_result = None
+                st.stop()
+                return None
 
             data = df_input[col].dropna().apply(lambda x: x.replace("'", "").strip()).unique().tolist()
 
             df_result = query_database(data, message_placeholder)
             if df_result is None or df_result.empty:
-                message_placeholder.error("No data found for the provided IDs.")
-                return
+                message_placeholder.error("Database Connection Error or No Data Found.")
+                st.stop()
+                return None
 
             st.session_state.df_result = df_result
-            st.session_state.download_bytes = to_excel_bytes(df_result)
-
-     
-
-        if "uploaded_data" in st.session_state:
-            if "df_result" in st.session_state:
-                st.write("File content preview")
-                st.dataframe(st.session_state.df_result.head())
+        
+            return True
+def main():
+    st.title("Finance Bill Reconciliation")
+    global message_placeholder
     
-                c = st.download_button(
-                    label="Download file",
-                    data=st.session_state.download_bytes,
-                    file_name=st.session_state.uploaded_file_name,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-    
-                if c:
-                    message_placeholder.success("File downloaded successfully!")
-                    file_changed = None
+    def flag():
+        download_clicked = st.session_state.get("download_clicked", False)
+        if download_clicked:
+            st.session_state.download_clicked = False
+
+    uploaded_file = st.file_uploader("Upload a file", type=["xlsx"], on_change=flag)
+    message_placeholder = st.empty()
+
+    if uploaded_file:
+        if not st.session_state.get("download_clicked", False):
+            process_file(uploaded_file)  
+
+        if "uploaded_data" in st.session_state and st.session_state.df_result is not None:
+            st.write("File content preview")
+            st.dataframe(st.session_state.df_result.head())
+
+            # Display the download button
+            download_clicked = st.download_button(
+                label="Download file",
+                data=to_excel_bytes(st.session_state.df_result),
+                file_name=st.session_state.uploaded_file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+            if download_clicked:
+                message_placeholder.success("File downloaded successfully!")
+                
 
 if __name__ == "__main__":
     main()
