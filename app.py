@@ -98,7 +98,7 @@ def process_file(uploaded_file):
                 st.stop()
                 return None
 
-            data = df_input[col].dropna().apply(lambda x: x.replace("'", "").strip()).unique().tolist()
+            data = df_input[col].dropna().apply(lambda x: str(x).replace("'", "").strip()).unique().tolist()
 
             df_result = query_database(data, message_placeholder)
             if df_result is None or df_result.empty:
