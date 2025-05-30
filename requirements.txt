@@ -3,3 +3,4 @@ pandas>=1.5
 pyodbc>=4.0
 xlsxwriter>=3.0
 openpyxl
+sqlalchemy
